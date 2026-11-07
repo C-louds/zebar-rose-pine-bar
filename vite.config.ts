@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
 
@@ -9,6 +10,7 @@ const widgetsDir = resolve(root, "widgets");
 
 export default defineConfig({
   plugins: [solidPlugin()],
+
   resolve: {
     alias: {
       "@": root,
@@ -17,16 +19,34 @@ export default defineConfig({
       "@components": resolve(root, "components"),
     },
   },
+
   build: {
     target: "esnext",
-
     outDir,
+
     rollupOptions: {
       input: {
-        "bar.komorebi": resolve(widgetsDir, "bar/komorebi", "index.html"),
-        "bar.glazewm": resolve(widgetsDir, "bar/glazewm", "index.html"),
+        "bar.komorebi": resolve(
+          widgetsDir,
+          "bar/komorebi",
+          "index.html"
+        ),
+
+        "bar.glazewm": resolve(
+          widgetsDir,
+          "bar/glazewm",
+          "index.html"
+        ),
+
+        "network-tooltip": resolve(
+          widgetsDir,
+          "network-tooltip",
+          "index.html"
+        ),
       },
     },
   },
+
   base: "./",
 });
+

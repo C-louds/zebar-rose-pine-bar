@@ -15,6 +15,43 @@
   ],
   "repositoryUrl": "https://github.com/thearturca/zebar-rose-pine-bar",
   "widgets": [
+	  {
+  "name": "network-tooltip",
+  "htmlPath": "./dist/src/widgets/network-tooltip/index.html",
+  "zOrder": "top_most",
+  "shownInTaskbar": false,
+  "focused": false,
+  "resizable": false,
+  "transparent": true,
+  "includeFiles": [
+    "dist/**/*"
+  ],
+  "caching": {
+    "defaultDuration": 604800,
+    "rules": []
+  },
+  "privileges": {
+    "shellCommands": []
+  },
+  "presets": [
+    {
+      "name": "default",
+      "anchor": "top_right",
+      "offsetX": "8px",
+      "offsetY": "44px",
+      "width": "340px",
+      "height": "190px",
+      "monitorSelection": {
+        "type": "primary"
+      },
+      "dockToEdge": {
+        "enabled": false,
+        "edge": null,
+        "windowMargin": "0px"
+      }
+    }
+  ]
+	  },
     {
       "name": "bar-komorebi",
       "htmlPath": "./dist/src/widgets/bar/komorebi/index.html",
@@ -73,7 +110,16 @@
         "rules": []
       },
       "privileges": {
-        "shellCommands": []
+        "shellCommands": [
+		{
+			"program": "powershell.exe",
+			"argsRegex": ".*"
+		},
+		{
+			"program": "explorer.exe",
+			"argsRegex": "^(ms-availablenetworks:|ms-settings:network-(wifi|ethernet))$"
+		}
+	]
       },
       "presets": [
         {

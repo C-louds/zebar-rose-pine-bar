@@ -20,28 +20,144 @@ interface NetDetails {
 
 type NetworkType = 'wifi' | 'ethernet' | 'disconnected';
 
-interface NetworkInfo {
-  type: NetworkType;
-  name: string;
-  status: string;
-  ip: string;
-  speed: string;
-}
-
 export const Network = () => {
   const providers = useProviders();
 
   const [netDetails, setNetDetails] =
     createSignal<NetDetails | null>(null);
 
-  const [tooltipVisible, setTooltipVisible] =
-    createSignal(false);
-
   let fetching = false;
   let mounted = true;
 
   // --------------------------------------------------
-  // Fetch network details using Windows PowerShell.
+  // Network tooltip communication.
+  // --------------------------------------------------
+
+  const tooltipChannel = new BroadcastChannel(
+    'rose-pine-network-tooltip'
+  );
+
+  let tooltipOpened = false;
+  let pointerOnIcon = false;
+  let pointerOnPopup = false;
+
+  let latestTooltipText = '';
+
+  let tooltipHideTimer:
+    | ReturnType<typeof setTimeout>
+    | undefined;
+
+  const clearTooltipHideTimer = () => {
+    if (tooltipHideTimer) {
+      clearTimeout(tooltipHideTimer);
+      tooltipHideTimer = undefined;
+    }
+  };
+
+  const getNetworkInfo = () => {
+    const net = providers.network;
+    const details = netDetails();
+
+    if (!net) {
+      return {
+        type: 'disconnected' as NetworkType,
+        tooltip: 'Disconnected\nNo network provider',
+      };
+    }
+
+    const interfaces = net.interfaces || [];
+    const defaultInterface = net.defaultInterface;
+
+    const activeInterface =
+      defaultInterface ||
+      interfaces.find(
+        (i) =>
+          i.ipv4Addresses?.length > 0 &&
+          !i.description?.toLowerCase().includes('virtual')
+      );
+
+    const wifiInterface = interfaces.find(
+      (i) =>
+        i.type === 'wifi' &&
+        i.ipv4Addresses?.length > 0 &&
+        !i.description?.toLowerCase().includes('virtual')
+    );
+
+    const alias = details?.alias?.toLowerCase() || '';
+
+    const isEthernet =
+      activeInterface?.type === 'ethernet' ||
+      alias.includes('ethernet');
+
+    const isWifi =
+      activeInterface?.type === 'wifi' ||
+      (!isEthernet &&
+        (Boolean(wifiInterface) ||
+          alias.includes('wi-fi') ||
+          alias.includes('wlan')));
+
+    const ip =
+      activeInterface?.ipv4Addresses?.[0]?.split('/')[0] || '';
+
+    const status =
+      details?.connectivity === 'Internet'
+        ? 'Internet access'
+        : details?.connectivity || 'Connected';
+
+    const speed = details?.speed || '';
+
+    const meta = [status, ip, speed]
+      .filter(Boolean)
+      .join(' · ');
+
+    if (isWifi) {
+      const name =
+        details?.name ||
+        net.defaultGateway?.ssid ||
+        'Wi-Fi Connected';
+
+      return {
+        type: 'wifi' as NetworkType,
+        tooltip: `${name}\n${meta}`,
+      };
+    }
+
+    if (isEthernet) {
+      const name =
+        details?.name ||
+        activeInterface?.friendlyName ||
+        activeInterface?.name ||
+        'Ethernet';
+
+      return {
+        type: 'ethernet' as NetworkType,
+        tooltip: `${name}\n${meta}`,
+      };
+    }
+
+    if (activeInterface || details) {
+      const name =
+        details?.name ||
+        activeInterface?.friendlyName ||
+        activeInterface?.name ||
+        'Connected';
+
+      return {
+        type: 'ethernet' as NetworkType,
+        tooltip: `${name}\n${meta}`,
+      };
+    }
+
+    return {
+      type: 'disconnected' as NetworkType,
+      tooltip: 'Disconnected\nNo internet access',
+    };
+  };
+
+  const info = () => getNetworkInfo();
+
+  // --------------------------------------------------
+  // Fetch network details using PowerShell.
   // --------------------------------------------------
 
   const fetchNetworkDetails = async () => {
@@ -129,121 +245,87 @@ export const Network = () => {
 
   const interval = setInterval(fetchNetworkDetails, 10000);
 
-  onCleanup(() => {
-    mounted = false;
-    clearInterval(interval);
-  });
-
   // --------------------------------------------------
-  // Determine active network.
+  // Tooltip lifecycle.
   // --------------------------------------------------
 
-  const getNetworkInfo = (): NetworkInfo => {
-    const net = providers.network;
-    const details = netDetails();
+  const scheduleTooltipHide = () => {
+    clearTooltipHideTimer();
 
-    if (!net) {
-      return {
-        type: 'disconnected',
-        name: 'Disconnected',
-        status: 'No network provider',
-        ip: '',
-        speed: '',
-      };
-    }
-
-    const interfaces = net.interfaces || [];
-    const defaultInterface = net.defaultInterface;
-
-    const activeInterface =
-      defaultInterface ||
-      interfaces.find(
-        (i) =>
-          i.ipv4Addresses?.length > 0 &&
-          !i.description?.toLowerCase().includes('virtual')
-      );
-
-    const wifiInterface = interfaces.find(
-      (i) =>
-        i.type === 'wifi' &&
-        i.ipv4Addresses?.length > 0 &&
-        !i.description?.toLowerCase().includes('virtual')
-    );
-
-    const alias = details?.alias?.toLowerCase() || '';
-
-    const isEthernet =
-      activeInterface?.type === 'ethernet' ||
-      alias.includes('ethernet');
-
-    const isWifi =
-      activeInterface?.type === 'wifi' ||
-      (!isEthernet &&
-        (Boolean(wifiInterface) ||
-          alias.includes('wi-fi') ||
-          alias.includes('wlan')));
-
-    const ip =
-      activeInterface?.ipv4Addresses?.[0]?.split('/')[0] || '';
-
-    const status =
-      details?.connectivity === 'Internet'
-        ? 'Internet access'
-        : details?.connectivity || 'Connected';
-
-    const speed = details?.speed || '';
-
-    if (isWifi) {
-      return {
-        type: 'wifi',
-        name:
-          details?.name ||
-          net.defaultGateway?.ssid ||
-          'Wi-Fi Connected',
-        status,
-        ip,
-        speed,
-      };
-    }
-
-    if (isEthernet) {
-      return {
-        type: 'ethernet',
-        name:
-          details?.name ||
-          activeInterface?.friendlyName ||
-          activeInterface?.name ||
-          'Ethernet',
-        status,
-        ip,
-        speed,
-      };
-    }
-
-    if (activeInterface || details) {
-      return {
-        type: 'ethernet',
-        name:
-          details?.name ||
-          activeInterface?.friendlyName ||
-          activeInterface?.name ||
-          'Connected',
-        status,
-        ip,
-        speed,
-      };
-    }
-
-    return {
-      type: 'disconnected',
-      name: 'Disconnected',
-      status: 'No internet access',
-      ip: '',
-      speed: '',
-    };
+    tooltipHideTimer = setTimeout(() => {
+      if (!pointerOnIcon && !pointerOnPopup) {
+        tooltipChannel.postMessage({
+          type: 'hide',
+        });
+      }
+    }, 500);
   };
 
-  const info = () => getNetworkInfo();
+  const showNetworkTooltip = async () => {
+    pointerOnIcon = true;
+    clearTooltipHideTimer();
+
+    latestTooltipText = info().tooltip;
+
+    if (!tooltipOpened) {
+      tooltipOpened = true;
+
+      try {
+        await zebar.startWidgetPreset(
+          'network-tooltip',
+          'default'
+        );
+      } catch (err) {
+        tooltipOpened = false;
+
+        console.error(
+          'Failed to open network tooltip:',
+          err
+        );
+      }
+    } else {
+      tooltipChannel.postMessage({
+        type: 'show',
+        text: latestTooltipText,
+      });
+    }
+  };
+
+  const hideNetworkTooltip = () => {
+    pointerOnIcon = false;
+    scheduleTooltipHide();
+  };
+
+  tooltipChannel.onmessage = (event: MessageEvent) => {
+    const message = event.data;
+
+    if (message.type === 'ready') {
+      if (pointerOnIcon || pointerOnPopup) {
+        tooltipChannel.postMessage({
+          type: 'show',
+          text: latestTooltipText,
+        });
+      } else {
+        tooltipChannel.postMessage({
+          type: 'hide',
+        });
+      }
+    }
+
+    if (message.type === 'popup-hover') {
+      pointerOnPopup = message.hovering;
+
+      if (pointerOnPopup) {
+        clearTooltipHideTimer();
+      } else {
+        scheduleTooltipHide();
+      }
+    }
+
+    if (message.type === 'closed') {
+      tooltipOpened = false;
+    }
+  };
 
   // --------------------------------------------------
   // Launch Windows URI.
@@ -257,10 +339,7 @@ export const Network = () => {
     }
   };
 
-  // --------------------------------------------------
   // Left-click: Open available networks.
-  // --------------------------------------------------
-
   const openNetworkFlyout = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -268,23 +347,31 @@ export const Network = () => {
     void launchWindowsUri('ms-availablenetworks:');
   };
 
-  // --------------------------------------------------
   // Right-click: Open network settings.
-  // --------------------------------------------------
-
   const openNetworkSettings = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    const type = info().type;
-
     const uri =
-      type === 'ethernet'
+      info().type === 'ethernet'
         ? 'ms-settings:network-ethernet'
         : 'ms-settings:network-wifi';
 
     void launchWindowsUri(uri);
   };
+
+  // --------------------------------------------------
+  // Cleanup.
+  // --------------------------------------------------
+
+  onCleanup(() => {
+    mounted = false;
+
+    clearInterval(interval);
+    clearTooltipHideTimer();
+
+    tooltipChannel.close();
+  });
 
   // --------------------------------------------------
   // Component UI.
@@ -293,17 +380,15 @@ export const Network = () => {
   return (
     <Show when={providers.network}>
       <div
-        class="relative"
-        onMouseEnter={() => {console.log('[Network] Mouse entered'); setTooltipVisible(true)}}
-        onMouseLeave={() => {console.log('[Network] Mouse left'); setTooltipVisible(false)}}
+        class="flex items-center"
+        onMouseEnter={showNetworkTooltip}
+        onMouseLeave={hideNetworkTooltip}
       >
-        {/* Network icon */}
-
         <button
           type="button"
           onClick={openNetworkFlyout}
           onContextMenu={openNetworkSettings}
-          aria-label={`${info().name}: ${info().status}`}
+          aria-label={`${info().tooltip}. Left-click to change network. Right-click for network settings.`}
           class="flex items-center justify-center hover:bg-overlay px-1.5 py-0.5 rounded transition-colors cursor-pointer bg-transparent border-none text-foam pointer-events-auto select-none"
           style={{
             'pointer-events': 'auto',
@@ -374,102 +459,6 @@ export const Network = () => {
             </Match>
           </Switch>
         </button>
-
-        {/* Rose Pine tooltip */}
-<div
-  style={{
-    position: 'fixed',
-    top: '0px',
-    left: '0px',
-    'z-index': '999999',
-    background: '#26233a',
-    color: '#e0def4',
-    padding: '8px',
-    border: '2px solid #9ccfd8',
-    display: tooltipVisible() ? 'block' : 'none',
-  }}
->
-  NETWORK TOOLTIP TEST
-</div>
-	<div
-          role="tooltip"
-          class={`absolute top-full right-0 mt-2 z-50
-            w-64 rounded-lg
-            bg-rose-pine-surface
-            border border-rose-pine-highlight-med
-            shadow-xl
-            p-3
-            transition-all duration-200
-            ${
-              tooltipVisible()
-                ? 'opacity-100 visible'
-                : 'opacity-0 invisible'
-            }`}
-        >
-          {/* Network name and status */}
-
-          <div class="flex items-center justify-between gap-2">
-            <div class="text-rose-pine-text font-semibold text-sm truncate">
-              {info().name}
-            </div>
-
-            <span
-              class={`text-xs shrink-0 ${
-                info().type === 'disconnected'
-                  ? 'text-rose-pine-love'
-                  : 'text-rose-pine-foam'
-              }`}
-            >
-              {info().type === 'disconnected'
-                ? 'Offline'
-                : 'Connected'}
-            </span>
-          </div>
-
-          <div class="text-rose-pine-subtle text-xs mt-1">
-            {info().status}
-          </div>
-
-          {/* Network details */}
-
-          <div class="border-t border-rose-pine-highlight-med mt-3 pt-2 space-y-2">
-            <Show when={info().ip}>
-              <div class="flex justify-between items-center gap-3">
-                <span class="text-rose-pine-muted text-xs">
-                  IP Address
-                </span>
-
-                <span class="text-rose-pine-text text-xs font-mono">
-                  {info().ip}
-                </span>
-              </div>
-            </Show>
-
-            <Show when={info().speed}>
-              <div class="flex justify-between items-center gap-3">
-                <span class="text-rose-pine-muted text-xs">
-                  Link Speed
-                </span>
-
-                <span class="text-rose-pine-text text-xs">
-                  {info().speed}
-                </span>
-              </div>
-            </Show>
-          </div>
-
-          {/* Click instructions */}
-
-          <div class="border-t border-rose-pine-highlight-med mt-3 pt-2 space-y-1">
-            <div class="text-rose-pine-muted text-xs">
-              Left-click · Change network
-            </div>
-
-            <div class="text-rose-pine-muted text-xs">
-              Right-click · Network settings
-            </div>
-          </div>
-        </div>
       </div>
     </Show>
   );
