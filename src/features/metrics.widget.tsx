@@ -86,30 +86,15 @@ export function MetricsWidget() {
   return (
     <GroupItem class="justify-end">
       <Metric>
-        <RiDeviceCpuLine class="w-4 h-4 text-rose-pine-rose" />
+        <RiDeviceCpuLine class="w-4 h-4 text-rose-pine-text" />
         {Math.round(cpuUsage.get()).toLocaleString(undefined, {})}%
       </Metric>
       <Metric>
-        <FaSolidMemory class="w-4 h-4 text-rose-pine-pine" />
+        <FaSolidMemory class="w-4 h-4 text-rose-pine-text" />
         {Math.round(memoryUsage.get()).toLocaleString(undefined, {})}%
       </Metric>
       <Metric>
-        <FaSolidSun
-          class="w-3.5 h-3.5 transition-colors"
-          classList={{
-            "text-rose-pine-foam": weather.get() <= -20,
-
-            "text-rose-pine-pine": weather.get() <= -10,
-
-            "text-rose-pine-iris": weather.get() <= 5,
-
-            "text-rose-pine-rose": weather.get() <= 14,
-
-            "text-rose-pine-gold": weather.get() <= 25,
-
-            "text-rose-pine-love": weather.get() >= 25,
-          }}
-        />
+        <FaSolidSun class="w-3.5 h-3.5 text-rose-pine-text" />
         {Math.round(weather.get())}°
       </Metric>
     </GroupItem>
