@@ -12,6 +12,8 @@ import { onMount } from "solid-js";
 import { WorkspacesGlazewmWidget } from "@/features/workspaces.glazewm.widget";
 import { FocusedWindowTitleGlazewmWidget } from "@/features/focused-window-title.glazewm.widget";
 motion;
+import { Systray } from '../../../features/systray.widget';
+import { Network } from '../../../features/network.widget';
 
 render(() => <App />, document.getElementById("root")!);
 
@@ -33,7 +35,7 @@ export function LeftGroup() {
     >
       <WorkspacesGlazewmWidget />
       <MediaWidget />
-    </Group>
+	</Group>
   );
 }
 
@@ -77,6 +79,8 @@ export function RightGroup() {
       <MetricsWidget />
       <KeyboardLayoutWidget />
       <DateTimeWidget />
+	<Network />
+	<Systray />
     </Group>
   );
 }

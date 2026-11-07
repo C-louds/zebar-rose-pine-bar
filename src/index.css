@@ -5,7 +5,7 @@
   --duration-250: 250ms;
   --default-transition-duration: var(--duration-250);
   --default-transition-timing-function: var(--ease-ios);
-  --color-rose-pine-base: hsl(246deg, 24%, 17%);
+  --color-rose-pine-base: hsl(246deg, 24%, 0%);
   --color-rose-pine-surface: hsl(248deg, 24%, 20%);
   --color-rose-pine-overlay: hsl(248deg, 21%, 26%);
   --color-rose-pine-muted: hsl(249deg, 12%, 47%);

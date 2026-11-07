@@ -13,6 +13,7 @@ export const providers = zebar.createProviderGroup({
   keyboard: { type: "keyboard" },
   media: { type: "media" },
   tray: { type: "systray" },
+  network: {type: "network"},
 });
 
 export type Providers = Partial<typeof providers.outputMap>;
