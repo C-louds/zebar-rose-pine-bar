@@ -6,14 +6,13 @@ import { ProvidersProvider } from "@providers/index";
 import { Group } from "@components/group.component";
 import { MediaWidget } from "@features/media.widget";
 import { MetricsWidget } from "@features/metrics.widget";
-import { KeyboardLayoutWidget } from "@features/keyboard-layout.widget";
 import { DateTimeWidget } from "@features/date-time.widget";
 import { onMount } from "solid-js";
 import { WorkspacesGlazewmWidget } from "@/features/workspaces.glazewm.widget";
 import { FocusedWindowTitleGlazewmWidget } from "@/features/focused-window-title.glazewm.widget";
 motion;
-import { Systray } from '../../../features/systray.widget';
-import { Network } from '../../../features/network.widget';
+import { Systray } from "../../../features/systray.widget";
+import { Network } from "../../../features/network.widget";
 
 render(() => <App />, document.getElementById("root")!);
 
@@ -21,21 +20,15 @@ export function LeftGroup() {
   return (
     <Group
       animationOptions={{
-        initial: {
-          x: "-200%",
-        },
-        animate: {
-          x: 0,
-        },
-        transition: {
-          duration: 2.0,
-        },
+        initial: { x: "-200%" },
+        animate: { x: 0 },
+        transition: { duration: 2.0 },
       }}
       class="justify-self-start justify-start"
     >
       <WorkspacesGlazewmWidget />
       <MediaWidget />
-	</Group>
+    </Group>
   );
 }
 
@@ -43,15 +36,9 @@ export function CenterGroup() {
   return (
     <Group
       animationOptions={{
-        initial: {
-          y: "-200%",
-        },
-        animate: {
-          y: 0,
-        },
-        transition: {
-          duration: 2.0,
-        },
+        initial: { y: "-200%" },
+        animate: { y: 0 },
+        transition: { duration: 2.0 },
       }}
       class="justify-self-center"
     >
@@ -64,23 +51,16 @@ export function RightGroup() {
   return (
     <Group
       animationOptions={{
-        initial: {
-          x: "200%",
-        },
-        animate: {
-          x: 0,
-        },
-        transition: {
-          duration: 2.0,
-        },
+        initial: { x: "200%" },
+        animate: { x: 0 },
+        transition: { duration: 2.0 },
       }}
       class="justify-self-end justify-end"
     >
       <MetricsWidget />
-      <KeyboardLayoutWidget />
       <DateTimeWidget />
-	<Network />
-	<Systray />
+      <Network />
+      <Systray />
     </Group>
   );
 }

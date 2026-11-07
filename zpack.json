@@ -39,8 +39,8 @@
       "anchor": "top_right",
       "offsetX": "8px",
       "offsetY": "44px",
-      "width": "340px",
-      "height": "190px",
+      "width": "360px",
+      "height": "220px",
       "monitorSelection": {
         "type": "primary"
       },

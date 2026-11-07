@@ -7,13 +7,13 @@ export const providers = zebar.createProviderGroup({
   cpu: { type: "cpu" },
   memory: { type: "memory" },
   weather: { type: "weather" },
-  date: { type: "date", formatting: "t", locale: "ru" },
+  date: { type: "date", formatting: "hh:mm a", locale: "en-US" },
   komorebi: { type: "komorebi" },
   glazewm: { type: "glazewm" },
   keyboard: { type: "keyboard" },
   media: { type: "media" },
   tray: { type: "systray" },
-  network: {type: "network"},
+  network: { type: "network" },
 });
 
 export type Providers = Partial<typeof providers.outputMap>;

@@ -1,211 +1,96 @@
-
-import { Show, createSignal, onCleanup } from 'solid-js';
-import * as zebar from 'zebar';
+import { createSignal, onMount, onCleanup, Show } from 'solid-js';
 
 export const NetworkTooltip = () => {
-  const [visible, setVisible] = createSignal(false);
-  const [networkInfo, setNetworkInfo] = createSignal(
-    'Waiting for network information...'
-  );
+  const [info, setInfo] = createSignal<any>(null);
 
-  const channel = new BroadcastChannel('rose-pine-network-tooltip');
-
-  const widget = zebar.currentWidget();
-
-  let hovering = false;
-  let closeTimer: ReturnType<typeof setTimeout> | undefined;
-  let closing = false;
-
-  const clearCloseTimer = () => {
-    if (closeTimer) {
-      clearTimeout(closeTimer);
-      closeTimer = undefined;
-    }
-  };
-
-  const closePopup = () => {
-    if (closing) return;
-
-    closing = true;
-    channel.postMessage({ type: 'closed' });
-    void widget.close();
-  };
-
-  const scheduleClose = () => {
-    clearCloseTimer();
-
-    closeTimer = setTimeout(() => {
-      if (!hovering) {
-        closePopup();
+  const loadInfo = () => {
+    const raw = localStorage.getItem('zebar-net-info');
+    if (raw) {
+      try {
+        setInfo(JSON.parse(raw));
+      } catch (e) {
+        console.error(e);
       }
-    }, 500);
-  };
-
-  channel.onmessage = (event: MessageEvent) => {
-    const message = event.data;
-
-    if (message.type === 'show') {
-      clearCloseTimer();
-      setNetworkInfo(message.text || 'Network information unavailable');
-      setVisible(true);
-    }
-
-    if (message.type === 'hide' && !hovering) {
-      scheduleClose();
     }
   };
 
-  const handleMouseEnter = () => {
-    hovering = true;
-    clearCloseTimer();
-
-    channel.postMessage({
-      type: 'popup-hover',
-      hovering: true,
-    });
-  };
-
-  const handleMouseLeave = () => {
-    hovering = false;
-
-    channel.postMessage({
-      type: 'popup-hover',
-      hovering: false,
-    });
-
-    scheduleClose();
-  };
-
-  // Tell the network widget that this popup is ready.
-  channel.postMessage({ type: 'ready' });
-
-  onCleanup(() => {
-    clearCloseTimer();
-    channel.close();
+  onMount(() => {
+    loadInfo();
+    const timer = setInterval(loadInfo, 500);
+    onCleanup(() => clearInterval(timer));
   });
 
   return (
-    <Show when={visible()}>
+    <Show when={info()}>
       <div
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         style={{
-          width: '100%',
-          height: '100%',
-          'box-sizing': 'border-box',
-          padding: '12px',
-          background: '#191724',
-          color: '#e0def4',
-          'font-family': 'inherit',
+          "background-color": "var(--color-rose-pine-base)",
+          color: "var(--color-rose-pine-text)",
         }}
+        class="w-full h-full p-3 bg-[var(--color-rose-pine-base)] text-[var(--color-rose-pine-text)] border-2 border-rp-muted rounded-2xl flex flex-col justify-between select-none box-border shadow-lg"
       >
-        <div
-          style={{
-            background: '#26233a',
-            border: '1px solid #524f67',
-            'border-radius': '12px',
-            padding: '16px',
-            'box-shadow': '0 8px 28px rgba(0,0,0,0.35)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              'align-items': 'center',
-              'justify-content': 'space-between',
-              'margin-bottom': '12px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                'align-items': 'center',
-                gap: '9px',
-              }}
-            >
-              <svg
-                width="19"
-                height="19"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#9ccfd8"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-                <path d="M12 20h.01" />
-              </svg>
-
-              <span
-                style={{
-                  'font-size': '14px',
-                  'font-weight': '600',
-                  color: '#e0def4',
-                }}
-              >
-                Network
-              </span>
-            </div>
-
+        {/* Header: SSID / Profile Name + Interface Badge */}
+        <div class="flex items-center justify-between gap-2 border-b border-rp-highlightMed pb-1.5">
+          <div class="flex items-center gap-1.5 truncate">
             <span
-              style={{
-                'font-size': '10px',
-                color: '#9ccfd8',
-                background: '#1f303b',
-                padding: '4px 8px',
-                'border-radius': '20px',
-              }}
-            >
-              CONNECTION INFO
+              class={`w-2 h-2 rounded-full shrink-0 ${
+                info().type === 'disconnected' ? 'bg-rp-love' : 'bg-rp-foam'
+              }`}
+            />
+            <span class="font-bold text-xs truncate">
+              {info().name}
             </span>
           </div>
+          <Show when={info().alias}>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-rp-surface border border-rp-highlightMed shrink-0 opacity-90">
+              {info().alias}
+            </span>
+          </Show>
+        </div>
 
-          <div
-            style={{
-              height: '1px',
-              background: '#403d52',
-              'margin-bottom': '12px',
-            }}
-          />
+        {/* Network Details Grid */}
+        <div class="grid grid-cols-[68px_1fr] gap-y-1 text-[11px] my-1">
+          <span class="opacity-60">Status</span>
+          <span class="truncate text-right">{info().status}</span>
 
-          <div
-            style={{
-              color: '#e0def4',
-              'font-size': '13px',
-              'font-weight': '500',
-              'line-height': '1.7',
-              'white-space': 'pre-wrap',
-              'overflow-wrap': 'anywhere',
-            }}
-          >
-            {networkInfo()}
-          </div>
+          <Show when={info().ip}>
+            <span class="opacity-60">IPv4</span>
+            <span class="truncate text-right">{info().ip}</span>
+          </Show>
 
-          <div
-            style={{
-              height: '1px',
-              background: '#403d52',
-              'margin-top': '12px',
-              'margin-bottom': '10px',
-            }}
-          />
+          <Show when={info().gateway}>
+            <span class="opacity-60">Gateway</span>
+            <span class="truncate text-right">{info().gateway}</span>
+          </Show>
 
-          <div
-            style={{
-              color: '#908caa',
-              'font-size': '10px',
-              display: 'flex',
-              'justify-content': 'space-between',
-            }}
-          >
-            <span>Left-click: Change network</span>
-            <span>Right-click: Settings</span>
-          </div>
+          <Show when={info().dns}>
+            <span class="opacity-60">DNS</span>
+            <span class="truncate text-right">{info().dns}</span>
+          </Show>
+
+          <Show when={info().speed}>
+            <span class="opacity-60">Speed</span>
+            <span class="truncate text-right">{info().speed}</span>
+          </Show>
+
+          <Show when={info().mac}>
+            <span class="opacity-60">MAC</span>
+            <span class="truncate text-right text-[10px]">
+              {info().mac}
+            </span>
+          </Show>
+        </div>
+
+        {/* Live Traffic Footer */}
+        <div class="flex items-center justify-between pt-1.5 border-t border-rp-highlightMed text-[11px]">
+          <span class="flex items-center gap-1">
+            <span class="text-rp-foam">↓</span> {info().down}
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="text-rp-rose">↑</span> {info().up}
+          </span>
         </div>
       </div>
     </Show>
   );
 };
-
